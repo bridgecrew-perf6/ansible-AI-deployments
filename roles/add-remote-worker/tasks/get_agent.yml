@@ -1,0 +1,56 @@
+
+- name: Get current agents
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    validate_certs: "{{ VALIDATE_CRET }}"
+    api_version:  agent-install.openshift.io/v1beta1
+    namespace: "{{ NAMESPACE }}"
+    kind: agent
+    label_selectors:
+      - "infraenvs.agent-install.openshift.io={{ INFRA_ENV_NAME }}"
+  register: _agents
+
+- name: Booting Server
+  shell: "{{ IPMI }} power reset"
+
+- name: wait for new agent to join
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    validate_certs: "{{ VALIDATE_CRET }}"
+    api_version:  agent-install.openshift.io/v1beta1
+    namespace: "{{ NAMESPACE }}"
+    kind: agent
+    label_selectors:
+      - "infraenvs.agent-install.openshift.io={{ INFRA_ENV_NAME }}"
+  register: _new_agents
+  retries: 15
+  delay: 60
+  until: _new_agents.resources|length > _agents.resources|length
+
+- name: "Pause for 1 minutes waiting for agent to register"
+  pause:
+    minutes: 1
+
+- name: Get all Agents
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    validate_certs: "{{ VALIDATE_CRET }}"
+    api_version:  agent-install.openshift.io/v1beta1
+    namespace: "{{ NAMESPACE }}"
+    kind: agent
+    label_selectors:
+      - "infraenvs.agent-install.openshift.io={{ INFRA_ENV_NAME }}"
+  register: _new_agents
+
+- name: write agent to file
+  copy:
+    content: "{{ _new_agents }}"
+    dest: /tmp/agents.json
+
+- name: Get Agent
+  shell: python3 /tmp/filter_json.py /tmp/agents.json
+  register: AGENT
+
+- name: set Agent Name 
+  set_fact:
+    AGENT_NAME: "{{ AGENT.stdout }}"

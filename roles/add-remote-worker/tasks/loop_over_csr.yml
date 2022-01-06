@@ -1,0 +1,22 @@
+
+- name: copy CSR
+  copy:
+    content: "{{ item.spec.request | b64decode }}"
+    dest: "/tmp/{{ item.metadata.name }}.csr"
+
+- name: Get information on generated certificate
+  community.crypto.openssl_csr_info:
+    path: "/tmp/{{ item.metadata.name }}.csr"
+  register: _result_csr
+
+- name: approve csr
+  shell: "kubectl certificate  approve {{ item.metadata.name }}"
+  environment: 
+    KUBECONFIG: "{{ KUBECONFIG_CLUSTER_PATH }}"
+  when: REMOTE_HOSTNAME in _result_csr.subject.commonName
+
+- name: "Delete CSR {{ item.metadata.name }}"
+  ansible.builtin.file:
+    path: "/tmp/{{ item.metadata.name }}.csr"
+    state: absent
+    

@@ -1,0 +1,185 @@
+---
+#tasks file for add-remote-worker
+- name: install dependencies
+  include: deps.yml
+
+- name: Create randmon KubeConfig file name
+  set_fact:
+    KUBECONFIG_PATH: "/tmp/kubeconfig-{{ lookup('community.general.random_string', upper=false, numbers=false, special=false)}}"
+
+- name: copy KubeConfig
+  copy:
+    src: "{{ KUBECONFIG_FILE }}"
+    dest: "{{ KUBECONFIG_PATH }}"
+
+- name: download ISO 
+  include: download-iso.yml
+
+- name: creating IPMI command
+  set_fact:
+    IPMI: "ipmitool -H {{ BMC_ADDRESS }} -U {{ BMC_USER }} -P {{ BMC_PASSWORD }}  -I lanplus"
+
+- name: Set next boot to PXE
+  shell: "{{ IPMI }} chassis bootdev pxe"
+
+- name: Copy filter script
+  template:
+    src: filter_json.py
+    dest: /tmp/filter_json.py
+
+- name: "Finding new agent "
+  include_tasks: get_agent.yml
+
+- name: Set next boot to disk
+  shell: "{{ IPMI }} chassis bootdev disk"
+
+- name: Set Agent Hostname 
+  kubernetes.core.k8s:
+   kubeconfig: "{{ KUBECONFIG_PATH }}"
+   validate_certs: "{{ VALIDATE_CRET }}"
+   namespace: "{{ NAMESPACE }}"
+   api_version:  agent-install.openshift.io/v1beta1
+   state: patched
+   kind: agent
+   name: "{{ AGENT_NAME }}"
+   definition:
+     spec:
+       hostname: "{{ REMOTE_HOSTNAME }}"
+       installerArgs: "[ {{ KERNEL_ARGS | string  }} ]"
+
+- name: Approve agent
+  kubernetes.core.k8s:
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    validate_certs: "{{ VALIDATE_CRET }}"
+    namespace: "{{ NAMESPACE }}"
+    api_version:  agent-install.openshift.io/v1beta1
+    state: patched
+    kind: agent
+    name: "{{ AGENT_NAME }}"
+    definition:
+      spec:
+        approved : true
+
+- name: Wait for Agent to Start Installation
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    validate_certs: "{{ VALIDATE_CRET }}"
+    api_version:  agent-install.openshift.io/v1beta1
+    namespace: "{{ NAMESPACE }}"
+    name: "{{ AGENT_NAME }}"
+    kind: agent
+  register: _agent_status
+  retries: 15
+  delay: 60
+  until: _agent_status.resources[0].status.progress.currentStage is defined 
+
+- name: Wait for Installation to be completed
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    validate_certs: "{{ VALIDATE_CRET }}"
+    api_version:  agent-install.openshift.io/v1beta1
+    namespace: "{{ NAMESPACE }}"
+    name: "{{ AGENT_NAME }}"
+    kind: agent
+  register: _agent_status
+  retries: 15
+  delay: 60
+  until: _agent_status.resources[0].status.progress.currentStage == "Done"
+
+- name: Downloading Kubectl
+  get_url:
+    url: https://dl.k8s.io/release/v1.23.0/bin/linux/amd64/kubectl
+    dest: /usr/local/bin/kubectl
+    mode: '0777'
+
+- name: Create randmon KubeConfig file name
+  set_fact:
+    KUBECONFIG_CLUSTER_PATH: "/tmp/kubeconfig-{{ lookup('community.general.random_string', upper=false, numbers=false, special=false)}}"
+
+- name: copy KubeConfig
+  copy:
+    src: "{{ KUBECONFIG_CLUSTER }}"
+    dest: "{{ KUBECONFIG_CLUSTER_PATH }}"
+
+- name: Get All CSR kube-apiserver
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ KUBECONFIG_CLUSTER_PATH }}"
+    validate_certs: "{{ VALIDATE_CRET }}"
+    wait: yes
+    api_version: certificates.k8s.io/v1
+    kind: CertificateSigningRequest
+    field_selectors:
+      - "spec.signerName=kubernetes.io/kube-apiserver-client-kubelet"
+  register: _CURRENT_CSR_API
+
+- name: Get All CSR kubelet-serving
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ KUBECONFIG_CLUSTER_PATH }}"
+    validate_certs: "{{ VALIDATE_CRET }}"
+    wait: yes
+    api_version: certificates.k8s.io/v1
+    kind: CertificateSigningRequest
+    field_selectors:
+      - "spec.signerName=kubernetes.io/kubelet-serving"
+  register: _CURRENT_CSR_KUBELET
+
+- name: set CSR kubelet-serving counter
+  set_fact:
+    CSR_COUNTER: "{{ 0 if (_CURRENT_CSR_API.resources[0].metadata.name is not defined) else  _CURRENT_CSR_API.resources|length }}"
+
+- name: Waiting For New CSR kube-apiserver
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ KUBECONFIG_CLUSTER_PATH }}"
+    validate_certs: "{{ VALIDATE_CRET }}"
+    wait: yes
+    api_version: certificates.k8s.io/v1
+    kind: CertificateSigningRequest
+    field_selectors:
+      - "spec.signerName=kubernetes.io/kube-apiserver-client-kubelet"
+  register: _CSR_API
+  until: 
+    - _CSR_API.resources|length > CSR_COUNTER|int and _CSR_API.resources[0].metadata.name is defined
+  retries: 15
+  delay: 60
+
+- name: loop over CSR's kube-apiserver
+  include_tasks: loop_over_csr.yml
+  loop: "{{ _CSR_API.resources }}" 
+
+- name: set CSR kube-kubelet counter
+  set_fact:
+    CSR_COUNTER: "{{ 0 if (_CURRENT_CSR_KUBELET.resources[0].metadata.name is not defined) else _CURRENT_CSR_KUBELET.resources|length }}"
+
+- name: Waiting For New CSR kube-kubelet
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ KUBECONFIG_CLUSTER_PATH }}"
+    validate_certs: "{{ VALIDATE_CRET }}"
+    wait: yes
+    api_version: certificates.k8s.io/v1
+    kind: CertificateSigningRequest
+    field_selectors:
+      - "spec.signerName=kubernetes.io/kubelet-serving"
+  register: _CSR_KUBELET
+  until: 
+    - _CSR_KUBELET.resources|length > CSR_COUNTER|int and _CSR_KUBELET.resources[0].metadata.name is defined
+  retries: 15
+  delay: 60
+
+- name: loop over CSR's kubelet 
+  include_tasks: loop_over_csr.yml
+  loop: "{{ _CSR_KUBELET.resources }}" 
+
+- name: "Wait for node {{ REMOTE_HOSTNAME }} to be Ready"
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ KUBECONFIG_CLUSTER_PATH }}"
+    validate_certs: "{{ VALIDATE_CRET }}"
+    kind: node
+    name: "{{ REMOTE_HOSTNAME }}"
+  register: NODE
+  until: NODE.resources[0].status.conditions[3].status == "True"
+  retries: 15
+  delay: 60
+
+- name: Done
+  debug:
+    var: NODE.resources[0]

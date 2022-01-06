@@ -1,0 +1,6 @@
+vars.yaml
+kubeconfig*
+*.log
+inventory
+notes
+

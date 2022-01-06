@@ -1,0 +1,84 @@
+- name: Get InfraEnv
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    validate_certs: "{{ VALIDATE_CRET }}"
+    api_version: agent-install.openshift.io/v1beta1
+    kind: infraenv
+    name: "{{ INFRA_ENV_NAME }}"
+    namespace: "{{ NAMESPACE }}"
+  register: _infraenv
+
+- name: Downloading ISO
+  get_url:
+    url: "{{ _infraenv.resources[0].status.isoDownloadURL }}"
+    dest: "/tmp/{{ DOWNLOADED_ISO }}"
+
+- name: Extract files from a ISO
+  iso_extract:
+    image: "/tmp/{{ DOWNLOADED_ISO }}"
+    dest: "{{ TFTP_DIR }}"
+    files:
+    - images/pxeboot/initrd.img
+    - images/pxeboot/vmlinuz
+    - images/ignition.img
+    - images/efiboot.img
+  become: yes
+
+- name: Create Mount point 
+  file:
+    path: "{{ MNT_EFIBOOT }}"
+    state: directory
+    owner: root
+    group: root
+  become: yes
+
+- name: Mount efiboot image
+  mount:
+    path: "{{ MNT_EFIBOOT }}"
+    src: "{{ TFTP_DIR }}/efiboot.img"
+    fstype: vfat
+    state: mounted
+  become: yes
+
+- name: Copy boot files to TFTP
+  copy:
+    src: "{{ MNT_EFIBOOT }}/EFI/BOOT/{{ item }}"
+    dest: "{{ TFTP_DIR }}/{{ item }}"
+    remote_src: true
+    owner: root
+    group: root
+  become: yes
+  loop:
+    - BOOTAA64.EFI
+    - grubaa64.efi
+
+- name: Release Mount
+  mount:
+    path: "{{ MNT_EFIBOOT }}"
+    src: "{{ TFTP_DIR }}/efiboot.img"
+    state: absent
+
+- name: "Getting getting boot info"
+  iso_extract:
+    image: "/tmp/{{ DOWNLOADED_ISO }}"
+    dest: "{{ TFTP_DIR }}"
+    files:
+    - isolinux/isolinux.cfg
+  become: yes
+
+- name: "Downloading rootfs.img"
+  shell: |
+    URL=$(cat {{ TFTP_DIR }}/isolinux.cfg  | grep -o 'coreos.live.rootfs_url=.*' | cut -f2- -d"=")
+    curl $URL --output  {{ TFTP_DIR }}/rootfs.img
+    cp {{ TFTP_DIR }}/rootfs.img {{ HTTP_DIR }}/rootfs.img
+    rm -f {{ TFTP_DIR  }}/isolinux.cfg 
+  become: yes
+
+- name: Creating Ignition files
+  shell: |
+    CONFIG={{ HTTP_DIR }}/config.ign
+    echo '{' >  $CONFIG
+    zcat  {{ TFTP_DIR }}/ignition.img | sed '1d; $d'  >>  $CONFIG
+    echo '}' >> $CONFIG
+    chown -R apache: {{ HTTP_DIR }}/
+  become: yes

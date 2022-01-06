@@ -1,0 +1,8 @@
+---
+- hosts: all
+  roles:
+    - setup-bootpxe
+    - add-remote-worker
+  vars_files:
+    - vars.yaml 
+  

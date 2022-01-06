@@ -1,0 +1,34 @@
+- name: "Get {{ INTERFACE }} connections"
+  shell: |
+    nmcli connection show  | grep -v prov-{{ INTERFACE }} | awk   '{ if ($4 == "{{ INTERFACE }}" )  print $1;}'
+  register: _CON_NAME
+
+- name: "Ensure {{ INTERFACE }} not set"
+  nmcli:
+    conn_name: "{{ _CON_NAME.stdout  }}"
+    ifname: "{{ INTERFACE }}"
+    state: absent
+  when: _CON_NAME.stdout != ""
+
+
+- name: Get Prefix from netmask
+  set_fact:
+    CIDR: "{{ _ip | ipaddr('prefix') }}"
+  vars:
+    _ip: "{{ DHCP_ROUTER }}/{{ DHCP_NETMASK }}"
+
+
+- name: Add an Ethernet connection with static IP configuration
+  nmcli:
+    conn_name: "prov-{{ INTERFACE }}"
+    ifname: "{{ INTERFACE }}"
+    type: ethernet
+    ip4: "{{ DHCP_ROUTER }}/{{ CIDR }}"
+    state: present
+
+- name: Create DHCP config
+  template:
+    src: dhcpd.conf.j2
+    dest: /etc/dhcp/dhcpd.conf
+  become: yes
+  notify: Restart DHCP Server

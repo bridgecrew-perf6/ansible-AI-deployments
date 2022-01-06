@@ -1,0 +1,19 @@
+---
+# defaults file for setup-bootpxe
+
+
+### Network and DHCP 
+# INTERFACE: ""
+
+DHCP_SUBNET: "10.255.255.0"
+DHCP_NETMASK: "255.255.255.0"
+DHCP_RANGE: "10.255.255.1 10.255.255.10"
+DHCP_ROUTER: "10.255.255.254"
+DHCP_DNS: "10.19.143.247"
+DHCP_NTP: "clock.redhat.com"
+
+### TFTP SERVER
+TFTP_DIR: "/var/lib/tftpboot"
+
+### HTTP SERVER
+HTTP_DIR: "/var/www/html/pxe"

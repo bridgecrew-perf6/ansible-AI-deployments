@@ -1,0 +1,26 @@
+
+- name: Create TFTP Directory
+  file:
+    path: "{{ TFTP_DIR }}"
+    state: directory
+    owner: root
+    group: root
+  become: yes
+
+
+- name: Creating Grub Config
+  template:
+    src: grub.cfg.j2
+    dest: "{{ TFTP_DIR }}/grub.cfg"
+  become: yes
+
+- name: configure TFTP service
+  template:
+    src:  tftp.service.j2
+    dest: /usr/lib/systemd/system/tftp.service
+  become: yes
+  notify: Restart TFTP Server
+
+
+
+#cat /sys/class/net/tmfifo_net0/address | cut -d":" -f1,2,3

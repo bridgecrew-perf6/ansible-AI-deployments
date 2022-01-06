@@ -1,0 +1,16 @@
+- name: Create HTTP Directory
+  file:
+    path: "{{ HTTP_DIR }}"
+    state: directory
+    owner: apache
+    group: apache
+  become: yes
+
+- name: Create HTTP config file
+  template:
+    src: pxeboot.conf.j2
+    dest: /etc/httpd/conf.d/pxeboot.conf
+    owner: apache
+    group: apache
+  become: yes
+  notify: Restart http Server
