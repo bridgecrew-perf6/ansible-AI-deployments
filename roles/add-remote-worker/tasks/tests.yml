@@ -19,7 +19,7 @@
     that:
       - BMC_PASSWORD is defined
       - BMC_PASSWORD != ""
-    fail_msg: "variable {{ BMC_PASSWORD}} must be defined"
+    fail_msg: "variable BMC_PASSWORD must be defined"
 
 
 - name: Checking KUBECONFIG FILE PATH
