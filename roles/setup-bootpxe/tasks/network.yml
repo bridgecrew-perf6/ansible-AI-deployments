@@ -26,9 +26,21 @@
     ip4: "{{ DHCP_ROUTER }}/{{ CIDR }}"
     state: present
 
+- name: Start DHCP Server
+  service:
+    name: dhcpd
+    state: stopped
+  become: yes
+
 - name: Create DHCP config
   template:
     src: dhcpd.conf.j2
     dest: /etc/dhcp/dhcpd.conf
   become: yes
-  notify: Restart DHCP Server
+
+- name: Start DHCP Server
+  service:
+    name: dhcpd
+    state: started
+    enabled: yes
+  become: yes

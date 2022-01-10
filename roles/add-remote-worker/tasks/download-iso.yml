@@ -82,3 +82,12 @@
     echo '}' >> $CONFIG
     chown -R apache: {{ HTTP_DIR }}/
   become: yes
+
+- name: Cleanup files 
+  file:
+    path: 
+    state: absent
+  loop:
+   - "{{ TFTP_DIR }}/efiboot.img"
+   - "{{ TFTP_DIR  }}/isolinux.cfg"
+   - "{{ TFTP_DIR }}/ignition.img"

@@ -1,7 +1,6 @@
 ---
-#tasks file for add-remote-worker
 - name: install dependencies
-  include: deps.yml
+  include_tasks: deps.yml
 
 - name: Create randmon KubeConfig file name
   set_fact:
@@ -13,7 +12,7 @@
     dest: "{{ KUBECONFIG_PATH }}"
 
 - name: download ISO 
-  include: download-iso.yml
+  include_tasks: download-iso.yml
 
 - name: creating IPMI command
   set_fact:
@@ -47,6 +46,19 @@
        hostname: "{{ REMOTE_HOSTNAME }}"
        installerArgs: "[ {{ KERNEL_ARGS | string  }} ]"
 
+- name: Waiting for Agent to be Validate
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    validate_certs: "{{ VALIDATE_CRET }}"
+    api_version:  agent-install.openshift.io/v1beta1
+    namespace: "{{ NAMESPACE }}"
+    name: "{{ AGENT_NAME }}"
+    kind: agent
+  register: _agent_validation
+  retries: 4
+  delay: 15
+  until: _agent_validation.resources[0].status.debugInfo.state == "known"
+  
 - name: Approve agent
   kubernetes.core.k8s:
     kubeconfig: "{{ KUBECONFIG_PATH }}"
@@ -86,6 +98,11 @@
   delay: 60
   until: _agent_status.resources[0].status.progress.currentStage == "Done"
 
+- name: Remove KubeConfig
+  file:
+    path: "{{ KUBECONFIG_PATH }}"
+    state: absent
+
 - name: Downloading Kubectl
   get_url:
     url: https://dl.k8s.io/release/v1.23.0/bin/linux/amd64/kubectl
@@ -96,7 +113,7 @@
   set_fact:
     KUBECONFIG_CLUSTER_PATH: "/tmp/kubeconfig-{{ lookup('community.general.random_string', upper=false, numbers=false, special=false)}}"
 
-- name: copy KubeConfig
+- name: Copy KubeConfig
   copy:
     src: "{{ KUBECONFIG_CLUSTER }}"
     dest: "{{ KUBECONFIG_CLUSTER_PATH }}"
@@ -123,7 +140,7 @@
       - "spec.signerName=kubernetes.io/kubelet-serving"
   register: _CURRENT_CSR_KUBELET
 
-- name: set CSR kubelet-serving counter
+- name: Set CSR kubelet-serving counter
   set_fact:
     CSR_COUNTER: "{{ 0 if (_CURRENT_CSR_API.resources[0].metadata.name is not defined) else  _CURRENT_CSR_API.resources|length }}"
 
@@ -142,7 +159,7 @@
   retries: 15
   delay: 60
 
-- name: loop over CSR's kube-apiserver
+- name: Loop over CSR's kube-apiserver
   include_tasks: loop_over_csr.yml
   loop: "{{ _CSR_API.resources }}" 
 
@@ -179,6 +196,11 @@
   until: NODE.resources[0].status.conditions[3].status == "True"
   retries: 15
   delay: 60
+
+- name: Remove KubeConfig
+  file:
+    path: "{{ KUBECONFIG_CLUSTER_PATH }}"
+    state: absent
 
 - name: Done
   debug:
