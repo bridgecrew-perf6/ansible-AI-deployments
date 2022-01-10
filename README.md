@@ -50,6 +50,12 @@ BMC_USER:       # BMC Username
 BMC_PASSWORD:   # BMC Password
 
 ```
+Create a Basic Inventory file
+> **note:** default user is `kni`, add `ansible_user="username"` for a different username
+```ini
+[jump-server]
+server01 
+```
 
 finally run `start.sh`.
 
