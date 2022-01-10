@@ -1,4 +1,7 @@
 ---
+- name: Verifying Variables 
+  include_tasks: tests.yml
+
 - name: install dependencies
   include_tasks: deps.yml
 
