@@ -1,0 +1,48 @@
+---
+- name: "Testing variable {{ item.name }}"
+  assert:
+    that:
+      - item.value is defined
+      - item.value != ""
+    fail_msg: "variable {{ item.name }} must be defined"
+  loop:
+    - { name: "INFRA_ENV_NAME", value: "{{ INFRA_ENV_NAME }}" }
+    - { name: "NAMESPACE", value: "{{ NAMESPACE }}" }
+    - { name: "BMC_ADDRESS", value: "{{ BMC_ADDRESS }}" }
+    - { name: "BMC_USER", value: "{{ BMC_USER }}" }
+    - { name: "KUBECONFIG_FILE", value: "{{ KUBECONFIG_FILE }}" }
+    - { name: "KUBECONFIG_CLUSTER", value: "{{ KUBECONFIG_CLUSTER }}" }
+
+- name: "Testing BMC_PASSWORD "
+  assert:
+    quiet: yes
+    that:
+      - BMC_PASSWORD is defined
+      - BMC_PASSWORD != ""
+    fail_msg: "variable BMC_PASSWORD must be defined"
+
+
+- name: Checking KUBECONFIG_FILE PATH
+  stat:
+    path: "{{ KUBECONFIG_FILE }}"
+  delegate_to: localhost
+  register: _TEST_KUBECONFIG
+
+- name: "Assert KUBECONFIG_FILE"
+  assert:
+    that:
+      - _TEST_KUBECONFIG.stat.exists
+    fail_msg: "Cannot locate 'KUBECONFIG_FILE' file on path {{ KUBECONFIG_FILE  }}"
+
+
+- name: Checking KUBECONFIG_CLUSTER PATH
+  stat:
+    path: "{{ KUBECONFIG_CLUSTER }}"
+  delegate_to: localhost
+  register: _TEST_KUBECONFIG
+
+- name: "Assert KUBECONFIG_CLUSTER"
+  assert:
+    that:
+      - _TEST_KUBECONFIG.stat.exists
+    fail_msg: "Cannot locate 'KUBECONFIG_FILE' file on path {{ KUBECONFIG_CLUSTER  }}"
