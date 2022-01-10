@@ -22,7 +22,7 @@
     fail_msg: "variable BMC_PASSWORD must be defined"
 
 
-- name: Checking KUBECONFIG FILE PATH
+- name: Checking KUBECONFIG_FILE PATH
   stat:
     path: "{{ KUBECONFIG_FILE }}"
   delegate_to: localhost
@@ -35,7 +35,7 @@
     fail_msg: "Cannot locate 'KUBECONFIG_FILE' file on path {{ KUBECONFIG_FILE  }}"
 
 
-- name: Checking KUBECONFIG FILE PATH
+- name: Checking KUBECONFIG_CLUSTER PATH
   stat:
     path: "{{ KUBECONFIG_CLUSTER }}"
   delegate_to: localhost
