@@ -59,6 +59,13 @@ server01
 
 finally run `start.sh`.
 
+### **Known Issues and Limitations**
 ---
+1. The repo support `ARM` deployments only.
+2. The `Agent` must be a Bluefield card
+3. when the `Agent` exist on `Assisted-installer` the deployment will fail, must delete the `Agent` before starting the deployment.
+
+
+
 ## Thanks
 ---
