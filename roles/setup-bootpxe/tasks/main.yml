@@ -1,5 +1,13 @@
 ---
 # tasks file for setup-bootpxe
+- name: Testing variable's 
+  assert:
+    that:
+      - INTERFACE is defined
+      - INTERFACE != ""
+    fail_msg: "variable 'INTERFACE' must be defined"
+    success_msg: "Pass"
+
 - name: install required packages
   yum:
     name:
@@ -11,14 +19,19 @@
     state: present
   become: yes
 
+- name: Ensure Python tools installed
+  pip:
+    name: netaddr
+  delegate_to: localhost
+
 - name: Setup networking
-  include: network.yml
+  include_tasks: network.yml
   tags: network,deps
 
 - name: setup TFTP server
-  include: tftpd.yml
+  include_tasks: tftpd.yml
   tags: tftpd,deps
 
 - name: setup HTTP server
-  include: http.yml
+  include_tasks: http.yml
   tags: http,deps

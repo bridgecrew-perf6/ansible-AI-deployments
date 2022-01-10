@@ -13,4 +13,10 @@
     owner: apache
     group: apache
   become: yes
-  notify: Restart http Server
+
+- name: Restart http Server
+  service:
+    name: httpd
+    state: reloaded
+    enabled: yes
+  become: yes

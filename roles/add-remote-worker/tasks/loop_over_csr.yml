@@ -1,15 +1,15 @@
 
-- name: copy CSR
+- name: "Copy CSR {{ item.metadata.name }}"
   copy:
     content: "{{ item.spec.request | b64decode }}"
     dest: "/tmp/{{ item.metadata.name }}.csr"
 
-- name: Get information on generated certificate
+- name: Get information from certificate
   community.crypto.openssl_csr_info:
     path: "/tmp/{{ item.metadata.name }}.csr"
   register: _result_csr
 
-- name: approve csr
+- name: "Approve csr {{ item.metadata.name }}"
   shell: "kubectl certificate  approve {{ item.metadata.name }}"
   environment: 
     KUBECONFIG: "{{ KUBECONFIG_CLUSTER_PATH }}"

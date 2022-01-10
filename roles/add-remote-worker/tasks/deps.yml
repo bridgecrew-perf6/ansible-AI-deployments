@@ -1,16 +1,16 @@
-- name: add required packages
+- name: Install required packages
   yum:
     name:
       - python3-pip
     state: present
   become: yes
 
-- name: upgrade pip package
+- name: Upgrade pip package
   pip: 
     name: pip
     extra_args: --upgrade
 
-- name: install kubernetes python tools
+- name: Install kubernetes python tools
   pip:
     name: 
       - kubernetes
