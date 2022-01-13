@@ -50,6 +50,8 @@ BMC_USER:       # BMC Username
 BMC_PASSWORD:   # BMC Password
 
 ```
+> **note:** The default architecture is `arm`. for `x86` please add `ARCH: x86` to `vars.yaml`
+
 Create a Basic Inventory file
 > **note:** default user is `kni`, add `ansible_user="username"` for a different username
 ```ini
@@ -61,9 +63,7 @@ finally run `start.sh`.
 
 ### **Known Issues and Limitations**
 ---
-1. The repo support `ARM` deployments only.
-2. The `Agent` must be a Bluefield card
-3. when the `Agent` exist on `Assisted-installer` the deployment will fail, must delete the `Agent` before starting the deployment.
+1. when the `Agent` exist on `Assisted-installer` the deployment will fail, must delete the `Agent` before starting the deployment.
 
 
 
