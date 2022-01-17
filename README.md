@@ -12,7 +12,7 @@ The installation is without `BMH`, instead we are downloading the ISO and bootpx
 ---
 [setup-bootpxe](docs/setup-bootpxe.md) role design to install and configure services for boot pxe  
 [add-remote-worker](docs/add-remote-worker.md) adding remote worker with CRD's for Assisted-installer
-
+[download-iso(docs/download-iso.md)] download ISO from `infraEnv` and extracting file to needed locations
 <BR>
 
 ### **How To Use**
