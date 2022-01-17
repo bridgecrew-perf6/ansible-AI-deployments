@@ -17,3 +17,5 @@ TFTP_DIR: "/var/lib/tftpboot"
 
 ### HTTP SERVER
 HTTP_DIR: "/var/www/html/pxe"
+
+ARCH: "arm"

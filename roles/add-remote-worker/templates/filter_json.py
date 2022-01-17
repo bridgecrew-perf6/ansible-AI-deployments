@@ -2,7 +2,7 @@ import json, sys, os
 
 def getAgentName(agents):    
     for agent in agents:
-        if agent["status"]["inventory"]["systemVendor"]["productName"] == "BlueField SoC" and  not agent["spec"]["approved"]:
+        if agent["status"]["inventory"]["hostname"] == "localhost" and  not agent["spec"]["approved"]:
             return agent["metadata"]["name"]
     print ("Error: Agent not found")
     exit(1)

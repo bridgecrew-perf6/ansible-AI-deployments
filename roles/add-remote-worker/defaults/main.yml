@@ -24,3 +24,5 @@ HTTP_DIR: "/var/www/html/pxe"
 AGENT_TIMEOUT: 600
 
 KERNEL_ARGS: '"--append-karg", "console=tty0 console=ttyS0,115200 console=ttyAMA1 console=hvc0 console=ttyAMA0 earlycon=pl011,0x01000000"'
+
+ARCH: "arm"

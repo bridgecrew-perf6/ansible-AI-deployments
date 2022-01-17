@@ -20,8 +20,11 @@ subnet {{ DHCP_SUBNET }} netmask {{ DHCP_NETMASK }} {
       match if substring (option vendor-class-identifier, 0, 9) = "PXEClient";
       next-server {{ DHCP_ROUTER }};
       always-broadcast on;
-
-      filename "/BOOTAA64.EFI"; 
+    {% if ARCH == "arm" %}
+      filename "/BOOTAA64.EFI";
+    {% else %}
+       filename "/BOOTX64.EFI";
+    {% endif %}
 
   }
 }

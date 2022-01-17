@@ -40,7 +40,7 @@
     state: mounted
   become: yes
 
-- name: Copy boot files to TFTP
+- name: "[ARM] Copy boot files to TFTP "
   copy:
     src: "{{ MNT_EFIBOOT }}/EFI/BOOT/{{ item }}"
     dest: "{{ TFTP_DIR }}/{{ item }}"
@@ -51,6 +51,20 @@
   loop:
     - BOOTAA64.EFI
     - grubaa64.efi
+  when: ARCH == "arm"
+
+- name: "[x86] Copy boot files to TFTP "
+  copy:
+    src: "{{ MNT_EFIBOOT }}/EFI/BOOT/{{ item }}"
+    dest: "{{ TFTP_DIR }}/{{ item }}"
+    remote_src: true
+    owner: root
+    group: root
+  become: yes
+  loop:
+    - BOOTX64.EFI
+    - grubx64.efi
+  when: ARCH == "x86"
 
 - name: Release Mount
   mount:
