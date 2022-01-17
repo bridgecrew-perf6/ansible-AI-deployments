@@ -1,4 +1,5 @@
 vars.yaml
+testing-playbook.yaml
 kubeconfig*
 *.log
 inventory

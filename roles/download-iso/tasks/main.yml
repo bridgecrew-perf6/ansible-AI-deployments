@@ -1,3 +1,17 @@
+---
+# tasks file for download-iso
+- name: Testing variables
+  include_tasks: tests.yml
+
+- name: Create randmon KubeConfig file name
+  set_fact:
+    KUBECONFIG_PATH: "/tmp/kubeconfig-{{ lookup('community.general.random_string', upper=false, numbers=false, special=false)}}"
+
+- name: copy KubeConfig
+  copy:
+    src: "{{ KUBECONFIG_FILE }}"
+    dest: "{{ KUBECONFIG_PATH }}"
+
 - name: Get InfraEnv
   kubernetes.core.k8s_info:
     kubeconfig: "{{ KUBECONFIG_PATH }}"
@@ -7,7 +21,7 @@
     name: "{{ INFRA_ENV_NAME }}"
     namespace: "{{ NAMESPACE }}"
   register: _infraenv
-  
+
 - name: Change download port
   shell: echo "{{ _infraenv.resources[0].status.isoDownloadURL   }}" | sed 's/:6080/:{{ URL_PORT }}/'
   register: DOWNLOAD_URL

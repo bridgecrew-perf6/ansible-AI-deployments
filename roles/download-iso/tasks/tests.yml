@@ -1,0 +1,24 @@
+---
+- name: "Testing variable {{ item.name }}"
+  assert:
+    that:
+      - item.value is defined
+      - item.value != ""
+    fail_msg: "variable {{ item.name }} must be defined"
+  loop:
+    - { name: "KUBECONFIG_FILE", value: "{{ KUBECONFIG_FILE }}" }
+    - { name: "NAMESPACE", value: "{{ NAMESPACE }}" }
+    - { name: "INFRA_ENV_NAME", value: "{{ INFRA_ENV_NAME }}" }
+
+
+- name: Checking KUBECONFIG_FILE PATH
+  stat:
+    path: "{{ KUBECONFIG_FILE }}"
+  delegate_to: localhost
+  register: _TEST_KUBECONFIG
+
+- name: "Assert KUBECONFIG_FILE"
+  assert:
+    that:
+      - _TEST_KUBECONFIG.stat.exists
+    fail_msg: "Cannot locate 'KUBECONFIG_FILE' file on path {{ KUBECONFIG_FILE  }}"

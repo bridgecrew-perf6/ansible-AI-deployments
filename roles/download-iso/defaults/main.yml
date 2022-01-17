@@ -1,0 +1,18 @@
+---
+# defaults file for download-iso
+KUBECONFIG_FILE: ""
+
+VALIDATE_CRET: "yes"
+
+### kubernetes CONFIG
+NAMESPACE: "default"
+INFRA_ENV_NAME: ""
+
+URL_PORT: ""
+
+## ISO params
+ARCH: "arm"
+DOWNLOADED_ISO: "image.iso"
+TFTP_DIR: "/var/lib/tftpboot"
+MNT_EFIBOOT: "/mnt/iso"
+HTTP_DIR: "/var/www/html/pxe"

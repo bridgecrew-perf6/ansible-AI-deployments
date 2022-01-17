@@ -30,6 +30,7 @@ NAMESPACE:          "default"
 
 # Optional -  Default Values
 ## ISO params
+URL_PORT:           ""
 DOWNLOADED_ISO:     "image.iso"
 TFTP_DIR:           "/var/lib/tftpboot"
 MNT_EFIBOOT:        "/mnt/iso"
